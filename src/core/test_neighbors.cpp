@@ -6,59 +6,87 @@
 #include "QuadTreeNode.h"
 #include <iostream>
 #include <vector>
-
 void printNeighbors(QuadTreeNode* node, int indent = 0) {
     if (!node) return;
 
     std::string prefix(indent, ' ');
+    const char* dirNames[] = {"LEFT", "RIGHT", "TOP", "BOTTOM"};
+
     std::cout << prefix << "Node at (" << node->gridX << "," << node->gridY
               << ") Level " << node->level << std::endl;
 
-    const char* dirNames[] = {"LEFT", "RIGHT", "TOP", "BOTTOM"};
     for (int i = 0; i < 4; ++i) {
-        if (node->neighbors[i]) {
-            std::cout << prefix << "  " << dirNames[i] << ": ("
-                      << node->neighbors[i]->gridX << ","
-                      << node->neighbors[i]->gridY << ") Level "
-                      << node->neighbors[i]->level << std::endl;
+        if (!node->neighbors[i].empty()) {
+            std::cout << prefix << "  " << dirNames[i] << ": ";
+            for (auto* neighbor : node->neighbors[i]) {
+                std::cout << "(" << neighbor->gridX << "," << neighbor->gridY
+                          << ") Lv" << neighbor->level << " ";
+            }
+            std::cout << std::endl;
         }
+    }
+}
+
+void printAllLeaves(QuadTreeNode* root) {
+    std::vector<QuadTreeNode*> leaves;
+    root->getAllLeaves(leaves);
+
+    std::cout << "\n=== All Leaves ===" << std::endl;
+    for (auto* leaf : leaves) {
+        printNeighbors(leaf);
+        std::cout << std::endl;
     }
 }
 
 int main() {
     std::cout << "========================================" << std::endl;
-    std::cout << "  ThermaGrid - Neighbor Test" << std::endl;
+    std::cout << "  ThermaGrid - Full Neighbor Test" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    // Create a root node
-    auto* root = new QuadTreeNode(20.0, 0, 0, 0);
+    // ========================================================================
+    // Create the tree
+    // ========================================================================
 
-    std::cout << "\n=== Uniform Grid (All Level 0, no refinement) ===" << std::endl;
-    root->buildNeighborsUsingGrid();
-    printNeighbors(root);
+    // Root at Level 0
+    QuadTreeNode* root = new QuadTreeNode(20.0, 0, 0, 0);
 
-    std::cout << "\n=== Refine Root (Level 1 grid) ===" << std::endl;
+    // Refine to Level 1
     root->refine();
     root->buildNeighborsUsingGrid();
+    std::cout << "\n=== Level 1 Grid (4 cells) ===" << std::endl;
+    printAllLeaves(root);
 
-    // Print all leaves
-    std::vector<QuadTreeNode*> leaves;
-    root->getAllLeaves(leaves);
-    for (auto* leaf : leaves) {
-        printNeighbors(leaf);
-    }
+    // ========================================================================
+    // Case 1: Refine NW child only
+    // ========================================================================
 
-    std::cout << "\n=== Refine NW Child (Level 2 grid) ===" << std::endl;
-    root->children[0]->refine();
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "  Case 1: Refine NW (Level 1 → Level 2)" << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    // Find NW child (index 0)
+    QuadTreeNode* nw = root->children[0];
+    nw->refine();
     root->buildNeighborsUsingGrid();
+    printAllLeaves(root);
 
-    leaves.clear();
-    root->getAllLeaves(leaves);
-    for (auto* leaf : leaves) {
-        printNeighbors(leaf);
-    }
+    // ========================================================================
+    // Case 2: Refine SE child as well
+    // ========================================================================
 
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "  Case 2: Refine SE (Level 1 → Level 2)" << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    QuadTreeNode* se = root->children[3];
+    se->refine();
+    root->buildNeighborsUsingGrid();
+    printAllLeaves(root);
+
+    // ========================================================================
     // Clean up
+    // ========================================================================
+
     delete root;
 
     std::cout << "\n✅ All tests passed!" << std::endl;

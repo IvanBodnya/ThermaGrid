@@ -22,23 +22,19 @@ public:
         , level(lvl)
         , gridX(x)
         , gridY(y) {
+
+        // Initialize all children to nullptr
         for (int i = 0; i < NUM_CHILDREN; ++i) {
             children[i] = nullptr;
-        }
-
-        for (int i = 0; i < NUM_CHILDREN; ++i) {
-            neighbors[i] = nullptr;
         }
     }
 
-    // Destructor - clean up children
+    // Destructor
     ~QuadTreeNode() {
+        // Delete all children
         for (int i = 0; i < NUM_CHILDREN; ++i) {
             delete children[i];
             children[i] = nullptr;
-
-            delete neighbors[i];
-            neighbors[i] = nullptr;
         }
     }
 
@@ -48,18 +44,19 @@ public:
 
     // Allow move
     QuadTreeNode(QuadTreeNode&& other) noexcept
-       : temperature(other.temperature)
-       , isLeaf(other.isLeaf)
-       , level(other.level)
-       , gridX(other.gridX)
-       , gridY(other.gridY) {
+         : temperature(other.temperature)
+         , isLeaf(other.isLeaf)
+         , level(other.level)
+         , gridX(other.gridX)
+         , gridY(other.gridY) {
+        // Steal children
         for (int i = 0; i < NUM_CHILDREN; ++i) {
             children[i] = other.children[i];
             other.children[i] = nullptr;
         }
+
         for (int i = 0; i < 4; ++i) {
-            neighbors[i] = other.neighbors[i];
-            other.neighbors[i] = nullptr;
+            neighbors[i] = std::move(other.neighbors[i]);
         }
     }
 
@@ -71,21 +68,34 @@ public:
                 children[i] = nullptr;
             }
 
-            // Move from other
+            // Copy data
             temperature = other.temperature;
             isLeaf = other.isLeaf;
             level = other.level;
+            gridX = other.gridX;
+            gridY = other.gridY;
+
+            // Steal children
             for (int i = 0; i < NUM_CHILDREN; ++i) {
                 children[i] = other.children[i];
                 other.children[i] = nullptr;
             }
-        }
 
+            for (int i = 0; i < 4; ++i) {
+                neighbors[i] = std::move(other.neighbors[i]);
+            }
+        }
         return *this;
     }
 
     void refine() {
         if (!isLeaf) return;
+
+        // Validate that current coordinates are valid for this level
+        int maxCoord = (1 << level) - 1;
+        if (gridX < 0 || gridX > maxCoord || gridY < 0 || gridY > maxCoord) {
+            throw std::runtime_error("Invalid grid coordinates during refinement!");
+        }
 
         // Create 4 children
         // Child 0 (NW): x-1, y-1
@@ -108,15 +118,21 @@ public:
         for (int i = 0; i < NUM_CHILDREN; ++i) {
             if (children[i]) {
                 sum += children[i]->temperature;
-                delete children[i];
-                children[i] = nullptr;
             }
         }
-
         temperature = sum / NUM_CHILDREN;
+
+        for (int i = 0; i < NUM_CHILDREN; ++i) {
+            delete children[i];
+            children[i] = nullptr;
+        }
         isLeaf = true;
         return temperature;
     }
+
+     // ========================================================================
+    // Tree Queries
+    // ========================================================================
 
     int countNodes() const {
         if (isLeaf) return 1;
@@ -128,6 +144,34 @@ public:
         }
         return count;
     }
+
+    void getAllLeaves(std::vector<QuadTreeNode*>& leaves) {
+        if (isLeaf) {
+            leaves.push_back(this);
+        } else {
+            for (int i = 0; i < NUM_CHILDREN; ++i) {
+                if (children[i]) {
+                    children[i]->getAllLeaves(leaves);
+                }
+            }
+        }
+    }
+
+    void getAllLeaves(std::vector<const QuadTreeNode*>& leaves) const {
+        if (isLeaf) {
+            leaves.push_back(this);
+        } else {
+            for (int i = 0; i < NUM_CHILDREN; ++i) {
+                if (children[i]) {
+                    children[i]->getAllLeaves(leaves);
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // Visualization
+    // ========================================================================
 
     void printTree(int indent = 0) const {
         std::cout << std::string(indent, ' ')
@@ -142,6 +186,23 @@ public:
                 if (children[i]) {
                     children[i]->printTree(indent + 2);
                 }
+            }
+        }
+    }
+
+    void printNeighbors(int indent = 0) const {
+        std::string prefix(indent, ' ');
+        const char* dirNames[] = {"LEFT", "RIGHT", "TOP", "BOTTOM"};
+
+        std::cout << prefix << "Node (" << gridX << "," << gridY << ") Lv" << level << std::endl;
+        for (int d = 0; d < 4; ++d) {
+            if (!neighbors[d].empty()) {
+                std::cout << prefix << "  " << dirNames[d] << ": ";
+                for (const auto* neighbor : neighbors[d]) {
+                    std::cout << "(" << neighbor->gridX << "," << neighbor->gridY
+                              << ") Lv" << neighbor->level << " ";
+                }
+                std::cout << std::endl;
             }
         }
     }
@@ -168,83 +229,35 @@ public:
     }
 
     // ========================================================================
-    // Neighbor Management Functions
+    // Neighbor Management
     // ========================================================================
 
-    /**
-     * Build all neighbor connections for the entire tree
-     * Call this after any refinement/coarsening
-     */
-    void updateNeighbors() {
-        // We need a way to find neighbors. The simplest approach:
-        // 1. Collect all leaf nodes in a grid structure
-        // 2. For each leaf, find its neighbors using spatial coordinates
-
-        // For now, we'll use a simpler recursive approach
-        updateNeighborsRecursive();
-    }
-
-    /**
-     * Find a neighbor in a specific direction at any level
-     */
-    QuadTreeNode* findNeighbor(Direction dir, int levelToFind = -1) {
-        // If levelToFind == -1, find the neighbor at the same level
-        if (levelToFind == -1) {
-            levelToFind = level;
-        }
-
-        // The algorithm:
-        // 1. If this is the root, we can't go further
-        // 2. Use the parent to find the neighbor
-        // 3. Traverse down to the correct level
-
-        // This is a simplified version - we'll implement the full one below
-        return nullptr;
-    }
-
-    // Simple version: Only find neighbors at the same level
-    void findNeighbors() {
-        if (isLeaf) return;
-
-        // For each child, find its neighbors
+    void clearNeighbors() {
         for (int i = 0; i < 4; ++i) {
-            if (children[i]) {
-                // Find neighbor in each direction
-                children[i]->neighbors[LEFT] = findNeighbor(LEFT, LEFT);
-                children[i]->neighbors[RIGHT] = findNeighbor(RIGHT, RIGHT);
-                // ... etc
-            }
+            neighbors[i].clear();
         }
     }
 
-    void getAllLeaves(std::vector<QuadTreeNode*>& leaves) {
-        if (isLeaf) {
-            leaves.push_back(this);
-        } else {
-            for (int i = 0; i < NUM_CHILDREN; ++i) {
-                if (children[i]) {
-                    children[i]->getAllLeaves(leaves);
-                }
-            }
+    void addNeighbor(Direction dir, QuadTreeNode* neighbor) {
+        if (!neighbor || neighbor == this) return;
+
+        // Check if already in the list
+        for (const auto* existing : neighbors[dir]) {
+            if (existing == neighbor) return;
         }
+        neighbors[dir].push_back(neighbor);
     }
 
-    /**
-     * Build neighbors using a flat grid approach
-     * This is the simplest method and works well for our AMR
-     */
     void buildNeighborsUsingGrid() {
-        // Step 1: Collect all leaf nodes
+        // Collect all leaf nodes
         std::vector<QuadTreeNode*> leaves;
         getAllLeaves(leaves);
 
-        // Step 2: Determine the size of the flat grid
-        // For simplicity, we'll use a 2D array of pointers
-        // The size is 2^maxLevel x 2^maxLevel
+        if (leaves.empty()) return;
 
-        // Step 3: Find max level
+        // Find the maximum level
         int maxLevel = 0;
-        for (auto* leaf : leaves) {
+        for (const auto* leaf : leaves) {
             if (leaf->level > maxLevel) {
                 maxLevel = leaf->level;
             }
@@ -252,43 +265,94 @@ public:
 
         int gridSize = 1 << maxLevel;  // 2^maxLevel
 
-        // Step 4: Create flat grid
+        // Create the flat grid
         std::vector<std::vector<QuadTreeNode*>> flatGrid(
-            gridSize, std::vector<QuadTreeNode*>(gridSize, nullptr)
+            gridSize,
+            std::vector<QuadTreeNode*>(gridSize, nullptr)
         );
 
-        // Step 5: Fill flat grid with leaf nodes
+        // Place each leaf into ALL the spots it occupies
         for (auto* leaf : leaves) {
-            int x = leaf->gridX;
-            int y = leaf->gridY;
-            if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
-                flatGrid[y][x] = leaf;
+            int scale = 1 << (maxLevel - leaf->level);
+            int x0 = leaf->gridX * scale;
+            int y0 = leaf->gridY * scale;
+
+            for (int dy = 0; dy < scale; ++dy) {
+                for (int dx = 0; dx < scale; ++dx) {
+                    int x = x0 + dx;
+                    int y = y0 + dy;
+                    if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
+                        flatGrid[y][x] = leaf;
+                    }
+                }
             }
         }
 
-        // Step 6: For each leaf, find neighbors
+        // Clear old neighbors
         for (auto* leaf : leaves) {
-            int x = leaf->gridX;
-            int y = leaf->gridY;
+            leaf->clearNeighbors();
+        }
 
-            // Left neighbor
-            if (x > 0) {
-                leaf->neighbors[LEFT] = flatGrid[y][x - 1];
+        // Find neighbors for each leaf
+        for (auto* leaf : leaves) {
+            int scale = 1 << (maxLevel - leaf->level);
+            int x0 = leaf->gridX * scale;
+            int y0 = leaf->gridY * scale;
+
+            // LEFT
+            if (x0 > 0) {
+                for (int dy = 0; dy < scale; ++dy) {
+                    int y = y0 + dy;
+                    int x = x0 - 1;
+                    if (y >= 0 && y < gridSize) {
+                        QuadTreeNode* candidate = flatGrid[y][x];
+                        if (candidate && candidate != leaf) {
+                            leaf->addNeighbor(LEFT, candidate);
+                        }
+                    }
+                }
             }
 
-            // Right neighbor
-            if (x < gridSize - 1) {
-                leaf->neighbors[RIGHT] = flatGrid[y][x + 1];
+            // RIGHT
+            if (x0 + scale < gridSize) {
+                for (int dy = 0; dy < scale; ++dy) {
+                    int y = y0 + dy;
+                    int x = x0 + scale;
+                    if (y >= 0 && y < gridSize) {
+                        QuadTreeNode* candidate = flatGrid[y][x];
+                        if (candidate && candidate != leaf) {
+                            leaf->addNeighbor(RIGHT, candidate);
+                        }
+                    }
+                }
             }
 
-            // Top neighbor
-            if (y > 0) {
-                leaf->neighbors[TOP] = flatGrid[y - 1][x];
+            // TOP
+            if (y0 > 0) {
+                for (int dx = 0; dx < scale; ++dx) {
+                    int x = x0 + dx;
+                    int y = y0 - 1;
+                    if (x >= 0 && x < gridSize) {
+                        QuadTreeNode* candidate = flatGrid[y][x];
+                        if (candidate && candidate != leaf) {
+                            leaf->addNeighbor(TOP, candidate);
+                        }
+                    }
+                }
             }
 
-            // Bottom neighbor
-            if (y < gridSize - 1) {
-                leaf->neighbors[BOTTOM] = flatGrid[y + 1][x];
+            // BOTTOM
+            if (y0 + scale < gridSize) {
+                for (int dx = 0; dx < scale; ++dx) {
+                    int x = x0 + dx;
+                    int y = y0 + scale;
+                    if (x >= 0 && x < gridSize) {
+                        QuadTreeNode* candidate = flatGrid[y][x];
+                        if (candidate && candidate != leaf) {
+                            leaf->addNeighbor(BOTTOM, candidate);
+                        }
+                    }
+                }
             }
         }
     }
@@ -304,7 +368,7 @@ public:
     int gridY;
 
     QuadTreeNode* children[NUM_CHILDREN];
-    QuadTreeNode* neighbors[NUM_CHILDREN];  // [LEFT, RIGHT, TOP, BOTTOM]
+    std::vector<QuadTreeNode*> neighbors[NUM_CHILDREN]; // LEFT, RIGHT, TOP, BOTTOM
 
 private:
     /**
