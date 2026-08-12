@@ -461,6 +461,24 @@ public:
         return laplacian / (count / 4.0);  // Normalize
     }
 
+    double computeRefinementIndicator() const {
+        if (!isLeaf) return 0.0;
+
+        // Method 1: Gradient magnitude (works for interior)
+        double grad = computeGradientMagnitude();
+        if (grad > 0.0) return grad;
+
+        // Method 2: If no gradient (boundary), use neighbor differences
+        double maxDiff = 0.0;
+        for (int d = 0; d < 4; ++d) {
+            for (const auto* neighbor : neighbors[d]) {
+                double diff = std::abs(neighbor->temperature - temperature);
+                if (diff > maxDiff) maxDiff = diff;
+            }
+        }
+        return maxDiff;
+    }
+
     // ========================================================================
     // Public data members
     // ========================================================================
