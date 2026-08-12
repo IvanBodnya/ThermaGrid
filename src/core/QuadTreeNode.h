@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <memory>
+#include <cmath>
 
 class QuadTreeNode {
 public:
@@ -355,6 +356,109 @@ public:
                 }
             }
         }
+    }
+
+    // ========================================================================
+    // Gradient Computation
+    // ========================================================================
+
+    /**
+     * Compute the temperature gradient in the X direction (∂T/∂x)
+     * Uses the LEFT and RIGHT neighbors
+     * Returns 0.0 if no neighbors available
+     */
+    double computeGradientX() const {
+        if (!isLeaf) return 0.0;
+
+        // If we have multiple neighbors, average their positions
+        // For now, use the first LEFT and RIGHT neighbors
+        // (In AMR, we need to weight by distance)
+
+        if (neighbors[LEFT].empty() || neighbors[RIGHT].empty()) {
+            return 0.0;  // Boundary
+        }
+
+        // Get the first neighbor in each direction
+        // (This is a simplification - we'll handle multiple neighbors later)
+        const QuadTreeNode* left = neighbors[LEFT][0];
+        const QuadTreeNode* right = neighbors[RIGHT][0];
+
+        // Approximate the distance between cells
+        // For same-level neighbors, distance = 2 * cellSize
+        // For mixed-level, this is more complex
+
+        // Simplified: assume unit distance
+        double dx = 2.0;  // Approximate
+        return (right->temperature - left->temperature) / dx;
+    }
+
+    /**
+     * Compute the temperature gradient in the Y direction (∂T/∂y)
+     */
+    double computeGradientY() const {
+        if (!isLeaf) return 0.0;
+
+        if (neighbors[TOP].empty() || neighbors[BOTTOM].empty()) {
+            return 0.0;  // Boundary
+        }
+
+        const QuadTreeNode* top = neighbors[TOP][0];
+        const QuadTreeNode* bottom = neighbors[BOTTOM][0];
+
+        double dy = 2.0;  // Approximate
+        return (top->temperature - bottom->temperature) / dy;
+    }
+
+    /**
+     * Compute the gradient magnitude: |∇T| = sqrt((∂T/∂x)² + (∂T/∂y)²)
+     * This is the key metric for deciding where to refine
+     */
+    double computeGradientMagnitude() const {
+        double dx = computeGradientX();
+        double dy = computeGradientY();
+        return std::sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * Compute the Laplacian: ∇²T = ∂²T/∂x² + ∂²T/∂y²
+     * This is used in the heat equation: ∂T/∂t = α∇²T
+     */
+    double computeLaplacian() const {
+        if (!isLeaf) return 0.0;
+
+        // Accumulate temperature differences from all neighbors
+        double laplacian = 0.0;
+        int count = 0;
+
+        // LEFT neighbors
+        for (const auto* neighbor : neighbors[LEFT]) {
+            laplacian += neighbor->temperature - temperature;
+            count++;
+        }
+
+        // RIGHT neighbors
+        for (const auto* neighbor : neighbors[RIGHT]) {
+            laplacian += neighbor->temperature - temperature;
+            count++;
+        }
+
+        // TOP neighbors
+        for (const auto* neighbor : neighbors[TOP]) {
+            laplacian += neighbor->temperature - temperature;
+            count++;
+        }
+
+        // BOTTOM neighbors
+        for (const auto* neighbor : neighbors[BOTTOM]) {
+            laplacian += neighbor->temperature - temperature;
+            count++;
+        }
+
+        // Average the contributions
+        // For a uniform 2D grid with 4 neighbors, laplacian = sum(T_neighbor - T_center)
+        // With multiple neighbors, we average
+        if (count == 0) return 0.0;
+        return laplacian / (count / 4.0);  // Normalize
     }
 
     // ========================================================================

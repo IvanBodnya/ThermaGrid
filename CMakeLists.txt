@@ -36,3 +36,9 @@ add_executable(ThermaGrid_Neighbors
         src/core/test_neighbors.cpp
 )
 target_link_libraries(ThermaGrid_Neighbors ThermaGrid_Core)
+
+# Gradient test
+add_executable(ThermaGrid_Gradients
+        src/core/test_gradients.cpp
+)
+target_link_libraries(ThermaGrid_Gradients ThermaGrid_Core)
