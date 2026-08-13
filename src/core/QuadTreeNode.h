@@ -278,6 +278,7 @@ public:
             int x0 = leaf->gridX * scale;
             int y0 = leaf->gridY * scale;
 
+            // Fill ALL positions this cell occupies
             for (int dy = 0; dy < scale; ++dy) {
                 for (int dx = 0; dx < scale; ++dx) {
                     int x = x0 + dx;

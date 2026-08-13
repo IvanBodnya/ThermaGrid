@@ -12,6 +12,7 @@ add_library(ThermaGrid_Core
     src/core/QuadTreeNode.cpp
     src/core/test_neighbors.cpp
     src/core/test_neighbors.h
+    src/core/AMRSolver.h
 )
 
 target_include_directories(ThermaGrid_Core
@@ -42,3 +43,9 @@ add_executable(ThermaGrid_Gradients
         src/core/test_gradients.cpp
 )
 target_link_libraries(ThermaGrid_Gradients ThermaGrid_Core)
+
+# Heat solver test
+add_executable(ThermaGrid_HeatSolver
+        src/core/test_heatsolver.cpp
+)
+target_link_libraries(ThermaGrid_HeatSolver ThermaGrid_Core)
