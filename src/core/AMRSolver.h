@@ -72,29 +72,36 @@ public:
      * @param dt Time step size
      */
     void stepForward(double dt) {
-        // Collect all leaf cells
         std::vector<QuadTreeNode*> leaves;
         root->getAllLeaves(leaves);
-        
-        // Compute new temperatures
+
         std::vector<double> newTemps(leaves.size());
+
         for (size_t i = 0; i < leaves.size(); ++i) {
             QuadTreeNode* cell = leaves[i];
-            
+
             // Compute the Laplacian
             double laplacian = cell->computeLaplacian();
-            
-            // Apply the heat equation (explicit Euler)
-            newTemps[i] = cell->temperature + alpha * laplacian * dt;
+
+            // Apply the heat equation
+            double newTemp = cell->temperature + alpha * laplacian * dt;
+
+            // Clamp temperatures to a reasonable range
+            // This prevents 0°C artifacts from propagating
+            if (newTemp < 0.0) newTemp = 0.0;
+            if (newTemp > 500.0) newTemp = 500.0;
+
+            newTemps[i] = newTemp;
         }
-        
-        // Update all cells with new temperatures
+
+        // Update all cells
         for (size_t i = 0; i < leaves.size(); ++i) {
             leaves[i]->temperature = newTemps[i];
         }
-        
-        // Apply boundary conditions
+
         applyBoundaryConditions();
+
+        time += dt;
     }
     
     /**
@@ -138,20 +145,24 @@ public:
      * @param resolution Resolution of the output grid
      * @return 2D vector of temperatures
      */
-    std::vector<std::vector<double>> getTemperatureField(int resolution = 100) const {
-        // Create a buffer
+    std::vector<std::vector<double>> getTemperatureField(int resolution = 100) {
         std::vector<double> buffer(resolution * resolution, 0.0);
-        
-        // Fill the buffer from the tree
-        root->fillUniformGrid(buffer, resolution, resolution, 0, 0, resolution);
-        
-        // Convert to 2D vector
-        std::vector<std::vector<double>> field(resolution, std::vector<double>(resolution, 0.0));
-        for (int y = 0; y < resolution; ++y) {
-            for (int x = 0; x < resolution; ++x) {
-                field[y][x] = buffer[y * resolution + x];
-            }
+
+        std::vector<QuadTreeNode*> leaves;
+        root->getAllLeaves(leaves);
+
+        int maxLevel = 0;
+        for (auto* leaf : leaves) {
+            if (leaf->level > maxLevel) maxLevel = leaf->level;
         }
+
+        root->fillUniformGrid(buffer, resolution, resolution, root->getMaxLevel());
+
+        std::vector<std::vector<double>> field(resolution, std::vector<double>(resolution, 0.0));
+        for (int y = 0; y < resolution; ++y)
+            for (int x = 0; x < resolution; ++x)
+                field[y][x] = buffer[y * resolution + x];
+
         return field;
     }
     
@@ -241,6 +252,19 @@ public:
                 // Neumann: no change (insulated)
             }
         }
+    }
+
+    void refineRoot(int levels = 1) {
+        for (int i = 0; i < levels; ++i) {
+            std::vector<QuadTreeNode*> leaves;
+            root->getAllLeaves(leaves);
+            for (auto* leaf : leaves) {
+                if (leaf->level < maxLevel) {
+                    leaf->refine();
+                }
+            }
+        }
+        root->buildNeighborsUsingGrid();
     }
     
 private:

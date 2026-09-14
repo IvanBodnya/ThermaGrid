@@ -209,24 +209,48 @@ public:
     }
 
     void fillUniformGrid(std::vector<double>& buffer,
-                        int width, int height,
-                        int x0, int y0, int cellSize) const {
+                     int width, int height,
+                     int maxLevel) const {
+        // Physical size of this cell (domain is [0,1] x [0,1])
+        double cellSize = 1.0 / (1 << level);
+
+        // Physical position of top-left corner
+        double px0 = gridX * cellSize;
+        double py0 = gridY * cellSize;
+
+        // Map to buffer pixels
+        int bx0 = static_cast<int>(px0 * width);
+        int by0 = static_cast<int>(py0 * height);
+        int bx1 = static_cast<int>((px0 + cellSize) * width);
+        int by1 = static_cast<int>((py0 + cellSize) * height);
+
         if (isLeaf) {
-            for (int dy = 0; dy < cellSize; ++dy) {
-                for (int dx = 0; dx < cellSize; ++dx) {
-                    int idx = (y0 + dy) * width + (x0 + dx);
-                    if (idx >= 0 && idx < static_cast<int>(buffer.size())) {
-                        buffer[idx] = temperature;
+            for (int by = by0; by < by1; ++by) {
+                for (int bx = bx0; bx < bx1; ++bx) {
+                    if (bx >= 0 && bx < width && by >= 0 && by < height) {
+                        buffer[by * width + bx] = temperature;
                     }
                 }
             }
         } else {
-            int halfCell = cellSize / 2;
-            if (children[0]) children[0]->fillUniformGrid(buffer, width, height, x0, y0, halfCell);
-            if (children[1]) children[1]->fillUniformGrid(buffer, width, height, x0 + halfCell, y0, halfCell);
-            if (children[2]) children[2]->fillUniformGrid(buffer, width, height, x0, y0 + halfCell, halfCell);
-            if (children[3]) children[3]->fillUniformGrid(buffer, width, height, x0 + halfCell, y0 + halfCell, halfCell);
+            for (int i = 0; i < NUM_CHILDREN; ++i) {
+                if (children[i]) {
+                    children[i]->fillUniformGrid(buffer, width, height, maxLevel);
+                }
+            }
         }
+    }
+
+    int getMaxLevel() const {
+        if (isLeaf) return level;
+        int maxChildLevel = level;
+        for (int i = 0; i < NUM_CHILDREN; ++i) {
+            if (children[i]) {
+                int childLevel = children[i]->getMaxLevel();
+                if (childLevel > maxChildLevel) maxChildLevel = childLevel;
+            }
+        }
+        return maxChildLevel;
     }
 
     // ========================================================================

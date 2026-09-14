@@ -35,7 +35,7 @@ int main() {
 
     // Fill uniform grid
     std::vector<double> buffer(16, 0.0); // 4x4 grid
-    root->fillUniformGrid(buffer, 4, 4, 0, 0, 4);
+    root->fillUniformGrid(buffer, 4, 4, root->getMaxLevel());
 
     std::cout << "\nUniform grid (4x4):" << std::endl;
     for (int y = 0; y < 4; ++y) {
