@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ThermaGrid.UI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+44ab971864aebb9ef90309abc9e3fc65a3e431c2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+be7176017b4662fa7029b5c6a35fcb6fa97a7f70")]
 [assembly: System.Reflection.AssemblyProductAttribute("ThermaGrid.UI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ThermaGrid.UI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
