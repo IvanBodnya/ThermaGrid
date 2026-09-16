@@ -9,80 +9,70 @@
 class QuadTreeNode {
 public:
     static constexpr int NUM_CHILDREN = 4;
+    static constexpr int NUM_NEIGHBORS = 4;
 
-    // Neighbor directions
-    enum Direction { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3 };
+    double temperature;
+    int level;
+    int gridX;
+    int gridY;
+    bool isLeaf;
 
-    // Child indices: 0=NW, 1=NE, 2=SW, 3=SE
-    enum ChildIndex { NW = 0, NE = 1, SW = 2, SE = 3 };
+    QuadTreeNode* children[NUM_CHILDREN];
+    std::vector<QuadTreeNode*> neighbors[NUM_CHILDREN];
 
-    // Constructor
-    explicit QuadTreeNode(double temp = 20.0, int lvl = 0, int x = 0, int y = 0)
-        : temperature(temp)
-        , isLeaf(true)
-        , level(lvl)
-        , gridX(x)
-        , gridY(y) {
+    explicit QuadTreeNode(const double temp = 20.0, const int lvl = 0, const int x = 0, const int y = 0)
+        : temperature(temp), level(lvl), gridX(x), gridY(y), isLeaf(true) {
 
-        // Initialize all children to nullptr
         for (int i = 0; i < NUM_CHILDREN; ++i) {
             children[i] = nullptr;
         }
     }
 
-    // Destructor
     ~QuadTreeNode() {
-        // Delete all children
         for (int i = 0; i < NUM_CHILDREN; ++i) {
             delete children[i];
             children[i] = nullptr;
         }
     }
 
-    // Disable copy (we don't want shallow copies)
     QuadTreeNode(const QuadTreeNode&) = delete;
     QuadTreeNode& operator=(const QuadTreeNode&) = delete;
 
-    // Allow move
     QuadTreeNode(QuadTreeNode&& other) noexcept
          : temperature(other.temperature)
-         , isLeaf(other.isLeaf)
          , level(other.level)
          , gridX(other.gridX)
-         , gridY(other.gridY) {
-        // Steal children
+         , gridY(other.gridY)
+         , isLeaf(other.isLeaf) {
         for (int i = 0; i < NUM_CHILDREN; ++i) {
             children[i] = other.children[i];
             other.children[i] = nullptr;
         }
 
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < NUM_NEIGHBORS; ++i) {
             neighbors[i] = std::move(other.neighbors[i]);
         }
     }
 
     QuadTreeNode& operator=(QuadTreeNode&& other) noexcept {
         if (this != &other) {
-            // Clean up current children
             for (int i = 0; i < NUM_CHILDREN; ++i) {
                 delete children[i];
                 children[i] = nullptr;
             }
 
-            // Copy data
             temperature = other.temperature;
             isLeaf = other.isLeaf;
             level = other.level;
             gridX = other.gridX;
             gridY = other.gridY;
 
-            // Steal children
             for (int i = 0; i < NUM_CHILDREN; ++i) {
                 children[i] = other.children[i];
                 other.children[i] = nullptr;
             }
 
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < NUM_NEIGHBORS; ++i) {
                 neighbors[i] = std::move(other.neighbors[i]);
             }
         }
@@ -263,15 +253,7 @@ public:
         }
     }
 
-    void addNeighbor(Direction dir, QuadTreeNode* neighbor) {
-        if (!neighbor || neighbor == this) return;
 
-        // Check if already in the list
-        for (const auto* existing : neighbors[dir]) {
-            if (existing == neighbor) return;
-        }
-        neighbors[dir].push_back(neighbor);
-    }
 
     void buildNeighborsUsingGrid() {
         // Collect all leaf nodes
@@ -504,20 +486,23 @@ public:
         return maxDiff;
     }
 
-    // ========================================================================
-    // Public data members
-    // ========================================================================
-
-    double temperature;
-    bool isLeaf;
-    int level;
-    int gridX;  // Position in the virtual grid at this level
-    int gridY;
-
-    QuadTreeNode* children[NUM_CHILDREN];
-    std::vector<QuadTreeNode*> neighbors[NUM_CHILDREN]; // LEFT, RIGHT, TOP, BOTTOM
-
 private:
+    // Neighbor directions
+    enum Direction { TOP = 0, RIGHT = 1, BOTTOM = 2, LEFT = 3 };
+
+    // Child indices
+    enum ChildIndex { NE = 0, SE = 1, SW = 2, NW = 3};
+
+    void addNeighbor(Direction dir, QuadTreeNode* neighbor) {
+        if (!neighbor || neighbor == this) return;
+
+        // Check if already in the list
+        for (const auto* existing : neighbors[dir]) {
+            if (existing == neighbor) return;
+        }
+        neighbors[dir].push_back(neighbor);
+    }
+
     /**
      * Recursive helper for updateNeighbors
      * This is a simplified version that works for uniform grids
