@@ -17,8 +17,8 @@ public:
     int gridY;
     bool isLeaf;
 
-    QuadTreeNode* children[NUM_CHILDREN];
-    std::vector<QuadTreeNode*> neighbors[NUM_CHILDREN];
+    QuadTreeNode* children[NUM_CHILDREN]{};
+    std::vector<QuadTreeNode*> neighbors[NUM_NEIGHBORS];
 
     explicit QuadTreeNode(const double temp = 20.0, const int lvl = 0, const int x = 0, const int y = 0)
         : temperature(temp), level(lvl), gridX(x), gridY(y), isLeaf(true) {
@@ -79,29 +79,34 @@ public:
         return *this;
     }
 
+    // ========================================================================
+    // Tree Queries
+    // ========================================================================
+
+    // creates children for a node and marks original one with isLeaf = false
     void refine() {
         if (!isLeaf) return;
 
         // Validate that current coordinates are valid for this level
+        // TODO: verify logic
         int maxCoord = (1 << level) - 1;
         if (gridX < 0 || gridX > maxCoord || gridY < 0 || gridY > maxCoord) {
             throw std::runtime_error("Invalid grid coordinates during refinement!");
         }
 
-        // Create 4 children
-        // Child 0 (NW): x-1, y-1
-        // Child 1 (NE): x+1, y-1
-        // Child 2 (SW): x-1, y+1
-        // Child 3 (SE): x+1, y+1
+        // Child 0 (NW)
+        // Child 1 (NE)
+        // Child 2 (SE)
+        // Child 3 (SW)
         children[0] = new QuadTreeNode(temperature, level + 1, gridX * 2, gridY * 2);
         children[1] = new QuadTreeNode(temperature, level + 1, gridX * 2 + 1, gridY * 2);
-        children[2] = new QuadTreeNode(temperature, level + 1, gridX * 2, gridY * 2 + 1);
-        children[3] = new QuadTreeNode(temperature, level + 1, gridX * 2 + 1, gridY * 2 + 1);
+        children[2] = new QuadTreeNode(temperature, level + 1, gridX * 2 + 1, gridY * 2 + 1);
+        children[3] = new QuadTreeNode(temperature, level + 1, gridX * 2, gridY * 2 + 1);
 
         isLeaf = false;
     }
 
-    // Coarsen this node
+    // deletes all children of a node and returns average temperature among the nodes
     double coarsen() {
         if (isLeaf) return temperature;
 
@@ -114,6 +119,9 @@ public:
         temperature = sum / NUM_CHILDREN;
 
         for (int i = 0; i < NUM_CHILDREN; ++i) {
+            // delete children recursively
+            children[i]->coarsen();
+
             delete children[i];
             children[i] = nullptr;
         }
@@ -121,10 +129,7 @@ public:
         return temperature;
     }
 
-     // ========================================================================
-    // Tree Queries
-    // ========================================================================
-
+    // recursively counts all the nodes
     int countNodes() const {
         if (isLeaf) return 1;
         int count = 1;
@@ -133,6 +138,7 @@ public:
                 count += children[i]->countNodes();
             }
         }
+
         return count;
     }
 
@@ -148,23 +154,11 @@ public:
         }
     }
 
-    void getAllLeaves(std::vector<const QuadTreeNode*>& leaves) const {
-        if (isLeaf) {
-            leaves.push_back(this);
-        } else {
-            for (int i = 0; i < NUM_CHILDREN; ++i) {
-                if (children[i]) {
-                    children[i]->getAllLeaves(leaves);
-                }
-            }
-        }
-    }
-
     // ========================================================================
     // Visualization
     // ========================================================================
 
-    void printTree(int indent = 0) const {
+    void printTree(const int indent = 0) const {
         std::cout << std::string(indent, ' ')
                   << "Level " << level
                   << ", Pos(" << gridX << "," << gridY << ")"
@@ -186,7 +180,7 @@ public:
         const char* dirNames[] = {"LEFT", "RIGHT", "TOP", "BOTTOM"};
 
         std::cout << prefix << "Node (" << gridX << "," << gridY << ") Lv" << level << std::endl;
-        for (int d = 0; d < 4; ++d) {
+        for (int d = 0; d < NUM_NEIGHBORS; ++d) {
             if (!neighbors[d].empty()) {
                 std::cout << prefix << "  " << dirNames[d] << ": ";
                 for (const auto* neighbor : neighbors[d]) {
@@ -252,8 +246,6 @@ public:
             neighbors[i].clear();
         }
     }
-
-
 
     void buildNeighborsUsingGrid() {
         // Collect all leaf nodes
