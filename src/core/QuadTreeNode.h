@@ -177,7 +177,7 @@ public:
 
     void printNeighbors(int indent = 0) const {
         std::string prefix(indent, ' ');
-        const char* dirNames[] = {"LEFT", "RIGHT", "TOP", "BOTTOM"};
+        const char* dirNames[] = {"TOP", "RIGHT", "BOTTOM", "LEFT"};
 
         std::cout << prefix << "Node (" << gridX << "," << gridY << ") Lv" << level << std::endl;
         for (int d = 0; d < NUM_NEIGHBORS; ++d) {
@@ -192,9 +192,11 @@ public:
         }
     }
 
-    void fillUniformGrid(std::vector<double>& buffer,
-                     int width, int height,
-                     int maxLevel) const {
+    void fillUniformGrid(
+        std::vector<double>& buffer,
+        int width,
+        int height,
+        int maxLevel) const {
         // Physical size of this cell (domain is [0,1] x [0,1])
         double cellSize = 1.0 / (1 << level);
 
