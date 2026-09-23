@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <vector>
 #include <iostream>
 #include <memory>
@@ -303,9 +302,9 @@ public:
 
             // LEFT
             if (x0 > 0) {
+                const int x = x0 - 1;
                 for (int dy = 0; dy < scale; ++dy) {
-                    int y = y0 + dy;
-                    int x = x0 - 1;
+                    const int y = y0 + dy;
                     if (y >= 0 && y < gridSize) {
                         QuadTreeNode* candidate = flatGrid[y][x];
                         if (candidate && candidate != leaf) {
@@ -317,9 +316,9 @@ public:
 
             // RIGHT
             if (x0 + scale < gridSize) {
+                const int x = x0 + scale;
                 for (int dy = 0; dy < scale; ++dy) {
-                    int y = y0 + dy;
-                    int x = x0 + scale;
+                    const int y = y0 + dy;
                     if (y >= 0 && y < gridSize) {
                         QuadTreeNode* candidate = flatGrid[y][x];
                         if (candidate && candidate != leaf) {
@@ -331,9 +330,9 @@ public:
 
             // TOP
             if (y0 > 0) {
+                const int y = y0 - 1;
                 for (int dx = 0; dx < scale; ++dx) {
-                    int x = x0 + dx;
-                    int y = y0 - 1;
+                    const int x = x0 + dx;
                     if (x >= 0 && x < gridSize) {
                         QuadTreeNode* candidate = flatGrid[y][x];
                         if (candidate && candidate != leaf) {
@@ -345,9 +344,9 @@ public:
 
             // BOTTOM
             if (y0 + scale < gridSize) {
+                const int y = y0 + scale;
                 for (int dx = 0; dx < scale; ++dx) {
-                    int x = x0 + dx;
-                    int y = y0 + scale;
+                    const int x = x0 + dx;
                     if (x >= 0 && x < gridSize) {
                         QuadTreeNode* candidate = flatGrid[y][x];
                         if (candidate && candidate != leaf) {
@@ -376,7 +375,8 @@ public:
         // (In AMR, we need to weight by distance)
 
         if (neighbors[LEFT].empty() || neighbors[RIGHT].empty()) {
-            return 0.0;  // Boundary
+            // Neumann boundary condition with zero flux (boundaries are insulated)
+            return 0.0;
         }
 
         // Get the first neighbor in each direction
@@ -387,9 +387,9 @@ public:
         // Approximate the distance between cells
         // For same-level neighbors, distance = 2 * cellSize
         // For mixed-level, this is more complex
+        double cellSize = 1.0 / (1 << level);
+        double dx = 2.0 * cellSize;
 
-        // Simplified: assume unit distance
-        double dx = 2.0;  // Approximate
         return (right->temperature - left->temperature) / dx;
     }
 
@@ -406,7 +406,9 @@ public:
         const QuadTreeNode* top = neighbors[TOP][0];
         const QuadTreeNode* bottom = neighbors[BOTTOM][0];
 
-        double dy = 2.0;  // Approximate
+        // Approximate
+        double cellSize = 1.0 / (1 << level);
+        double dy = 2.0 * cellSize;
         return (top->temperature - bottom->temperature) / dy;
     }
 
@@ -428,56 +430,44 @@ public:
         if (!isLeaf) return 0.0;
 
         // Accumulate temperature differences from all neighbors
-        double laplacian = 0.0;
+        double sum = 0.0;
         int count = 0;
 
         // LEFT neighbors
         for (const auto* neighbor : neighbors[LEFT]) {
-            laplacian += neighbor->temperature - temperature;
+            sum += neighbor->temperature - temperature;
             count++;
         }
 
         // RIGHT neighbors
         for (const auto* neighbor : neighbors[RIGHT]) {
-            laplacian += neighbor->temperature - temperature;
+            sum += neighbor->temperature - temperature;
             count++;
         }
 
         // TOP neighbors
         for (const auto* neighbor : neighbors[TOP]) {
-            laplacian += neighbor->temperature - temperature;
+            sum += neighbor->temperature - temperature;
             count++;
         }
 
         // BOTTOM neighbors
         for (const auto* neighbor : neighbors[BOTTOM]) {
-            laplacian += neighbor->temperature - temperature;
+            sum += neighbor->temperature - temperature;
             count++;
         }
 
         // Average the contributions
         // For a uniform 2D grid with 4 neighbors, laplacian = sum(T_neighbor - T_center)
+        // ∇²T ≈ (T_left + T_right + T_top + T_bottom - 4*T) / h²
         // With multiple neighbors, we average
         if (count == 0) return 0.0;
-        return laplacian / (count / 4.0);  // Normalize
-    }
 
-    double computeRefinementIndicator() const {
-        if (!isLeaf) return 0.0;
+        // Normalize by count and divide by h²
+        double cellSize = 1.0 / (1 << level);
+        double h2 = cellSize * cellSize;
 
-        // Method 1: Gradient magnitude (works for interior)
-        double grad = computeGradientMagnitude();
-        if (grad > 0.0) return grad;
-
-        // Method 2: If no gradient (boundary), use neighbor differences
-        double maxDiff = 0.0;
-        for (int d = 0; d < 4; ++d) {
-            for (const auto* neighbor : neighbors[d]) {
-                double diff = std::abs(neighbor->temperature - temperature);
-                if (diff > maxDiff) maxDiff = diff;
-            }
-        }
-        return maxDiff;
+        return (4.0 * sum / count) / h2;
     }
 
 private:
@@ -495,26 +485,5 @@ private:
             if (existing == neighbor) return;
         }
         neighbors[dir].push_back(neighbor);
-    }
-
-    /**
-     * Recursive helper for updateNeighbors
-     * This is a simplified version that works for uniform grids
-     * We'll expand it for AMR in the next step
-     */
-    void updateNeighborsRecursive() {
-        if (isLeaf) {
-            // For a leaf node, find neighbors using grid position
-            // This only works if we have a parent pointer (which we don't yet)
-            // We'll implement a better version below
-            return;
-        }
-
-        // Recurse into children
-        for (int i = 0; i < NUM_CHILDREN; ++i) {
-            if (children[i]) {
-                children[i]->updateNeighborsRecursive();
-            }
-        }
     }
 };
