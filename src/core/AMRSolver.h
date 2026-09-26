@@ -204,9 +204,11 @@ public:
         double value;  // Temperature for Dirichlet, flux for Neumann
     };
 
-    void setBoundaryCondition(int side, BoundaryType type, double value) {
-        // side: 0=left, 1=right, 2=top, 3=bottom
-        bc[side] = {type, value};
+    void setBoundaryCondition(
+        QuadTreeNode::Direction direction,
+        BoundaryType type,
+        double value) {
+        bc[direction] = {type, value};
     }
 
     void applyBoundaryConditions() {
@@ -215,41 +217,27 @@ public:
 
         for (auto* leaf : leaves) {
             // Check which boundaries the cell is on
-            bool onBoundary[4] = {false, false, false, false};
-
-            for (int d = 0; d < 4; ++d) {
+            for (int d = 0; d < SIDES_COUNT; ++d) {
                 if (leaf->neighbors[d].empty()) {
-                    onBoundary[d] = true;
-                }
-            }
+                    // Cell is on boundary side d
+                    const auto& condition = bc[d];
 
-            // Apply boundary conditions for each side
-            if (onBoundary[0]) { // LEFT
-                if (bc[0].type == DIRICHLET) {
-                    leaf->temperature = bc[0].value;
-                }
-                // Neumann: no change (insulated)
-            }
+                    switch (condition.type) {
+                        case DIRICHLET:
+                            leaf->temperature = condition.value;
+                            break;
 
-            if (onBoundary[1]) { // RIGHT
-                if (bc[1].type == DIRICHLET) {
-                    leaf->temperature = bc[1].value;
-                }
-                // Neumann: no change (insulated)
-            }
+                        case NEUMANN:
+                            // Neumann: fixed flux — don't modify temperature here.
+                            // The flux is enforced via the gradient computation
+                            // (which we'll fix separately).
+                            break;
 
-            if (onBoundary[2]) { // TOP
-                if (bc[2].type == DIRICHLET) {
-                    leaf->temperature = bc[2].value;
+                        case ROBIN:
+                            // Robin: mixed. Skip for now, or implement later.
+                            break;
+                    }
                 }
-                // Neumann: no change (insulated)
-            }
-
-            if (onBoundary[3]) { // BOTTOM
-                if (bc[3].type == DIRICHLET) {
-                    leaf->temperature = bc[3].value;
-                }
-                // Neumann: no change (insulated)
             }
         }
     }
@@ -268,11 +256,14 @@ public:
     }
     
 private:
+    // At this point, region is a square, that has always 4 sides
+    static constexpr int SIDES_COUNT = 4;
+
     QuadTreeNode* root;
     double domainSize;
     double alpha;
     int maxLevel;
     double time;
     double boundaryTemp;
-    BoundaryCondition bc[4];  // Boundary conditions for each side
+    BoundaryCondition bc[SIDES_COUNT];
 };

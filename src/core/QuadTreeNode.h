@@ -7,6 +7,9 @@
 
 class QuadTreeNode {
 public:
+    // Neighbor directions
+    enum Direction { TOP = 0, RIGHT = 1, BOTTOM = 2, LEFT = 3 };
+
     static constexpr int NUM_CHILDREN = 4;
     static constexpr int NUM_NEIGHBORS = 4;
 
@@ -471,9 +474,6 @@ public:
     }
 
 private:
-    // Neighbor directions
-    enum Direction { TOP = 0, RIGHT = 1, BOTTOM = 2, LEFT = 3 };
-
     // Child indices
     enum ChildIndex { NE = 0, SE = 1, SW = 2, NW = 3};
 
