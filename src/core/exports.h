@@ -14,12 +14,22 @@
 
 #ifdef _WIN32
     #ifdef THERMAGRID_EXPORTS
+        // Building the DLL: export symbols
         #define TG_API __declspec(dllexport)
+    #elif defined(THERMAGRID_STATIC)
+        // Building the static library: no decoration needed
+        #define TG_API
     #else
+        // Using the DLL from another project: import symbols
         #define TG_API __declspec(dllimport)
     #endif
 #else
-    #define TG_API __attribute__((visibility("default")))
+    // Linux/macOS: default visibility
+    #ifdef THERMAGRID_EXPORTS
+        #define TG_API __attribute__((visibility("default")))
+    #else
+        #define TG_API
+    #endif
 #endif
 
 #ifdef __cplusplus

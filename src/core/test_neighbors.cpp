@@ -1,11 +1,8 @@
-﻿//
-// Created by ivanb on 12.07.2026.
-//
-
-#include "test_neighbors.h"
+﻿#include "test_neighbors.h"
 #include "QuadTreeNode.h"
 #include <iostream>
 #include <vector>
+
 void printNeighbors(QuadTreeNode* node, int indent = 0) {
     if (!node) return;
 

@@ -1,4 +1,5 @@
 ﻿#include "AMRSolver.h"
+#include "QuadTreeNode.h"
 #include <iostream>
 #include <iomanip>
 
@@ -32,10 +33,10 @@ int main() {
     // ========================================================================
 
     // Option 1: All boundaries at 100°C
-    solver.setBoundaryCondition(0, AMRSolver::DIRICHLET, 100.0);  // LEFT
-    solver.setBoundaryCondition(1, AMRSolver::DIRICHLET, 100.0);  // RIGHT
-    solver.setBoundaryCondition(2, AMRSolver::DIRICHLET, 100.0);  // TOP
-    solver.setBoundaryCondition(3, AMRSolver::DIRICHLET, 100.0);  // BOTTOM
+    solver.setBoundaryCondition(QuadTreeNode::Direction::LEFT, AMRSolver::DIRICHLET, 100.0);  // LEFT
+    solver.setBoundaryCondition(QuadTreeNode::Direction::RIGHT, AMRSolver::DIRICHLET, 100.0);  // RIGHT
+    solver.setBoundaryCondition(QuadTreeNode::Direction::TOP, AMRSolver::DIRICHLET, 100.0);  // TOP
+    solver.setBoundaryCondition(QuadTreeNode::Direction::BOTTOM, AMRSolver::DIRICHLET, 100.0);  // BOTTOM
 
     // Option 2: Mixed boundaries (uncomment to try)
     // solver.setBoundaryCondition(0, AMRSolver::DIRICHLET, 100.0);  // LEFT: heated
