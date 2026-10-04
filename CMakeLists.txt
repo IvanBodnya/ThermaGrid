@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CORE_SOURCES
         src/core/QuadTreeNode.cpp
+        src/core/AMRSolver.cpp
         src/core/exports.cpp
 )
 
