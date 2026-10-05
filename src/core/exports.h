@@ -5,11 +5,6 @@
 // 
 // This header exposes the ThermaGrid simulation engine as a plain C API
 // so it can be called from C# (or Python, or any other language) via P/Invoke.
-//
-// All functions use C linkage (extern "C") and C-compatible types only:
-//   - No C++ classes
-//   - No std::vector, std::string, etc.
-//   - No references (&) — use pointers (*) instead
 // ============================================================================
 
 #ifdef _WIN32

@@ -7,12 +7,12 @@
 // Solver lifecycle
 // ============================================================================
 
-void* tg_create_solver(double domainSize,
-                       double initialTemp,
-                       double alpha,
-                       int maxLevel) {
+void* tg_create_solver(const double domainSize,
+                       const double initialTemp,
+                       const double alpha,
+                       const int maxLevel) {
     try {
-        AMRSolver* solver = new AMRSolver(domainSize, initialTemp, alpha, maxLevel);
+        auto* solver = new AMRSolver(domainSize, initialTemp, alpha, maxLevel);
         solver->refineRoot(2);  // Refine to level 2 (16 cells)
         return static_cast<void*>(solver);
     } catch (const std::exception& e) {
@@ -35,17 +35,17 @@ void tg_reset_solver(void* solver) {
 // Simulation control
 // ============================================================================
 
-void tg_step_forward(void* solver, double dt) {
+void tg_step_forward(void* solver, const double dt) {
     if (!solver) return;
     static_cast<AMRSolver*>(solver)->stepForward(dt);
 }
 
-void tg_adapt_grid(void* solver, double threshold) {
+void tg_adapt_grid(void* solver, const double threshold) {
     if (!solver) return;
     static_cast<AMRSolver*>(solver)->adaptGrid(threshold);
 }
 
-void tg_run(void* solver, int numSteps, double dt, double refineThreshold) {
+void tg_run(void* solver, const int numSteps, const double dt, const double refineThreshold) {
     if (!solver) return;
     static_cast<AMRSolver*>(solver)->run(numSteps, dt, refineThreshold);
 }
@@ -54,7 +54,7 @@ void tg_run(void* solver, int numSteps, double dt, double refineThreshold) {
 // Configuration
 // ============================================================================
 
-void tg_set_boundary_condition(void* solver, int side, int type, double value) {
+void tg_set_boundary_condition(void* solver, int side, int type, const double value) {
     if (!solver) return;
     // TODO: wire this to AMRSolver once we have a proper BC API
     auto* s = static_cast<AMRSolver*>(solver);
@@ -62,9 +62,9 @@ void tg_set_boundary_condition(void* solver, int side, int type, double value) {
 }
 
 void tg_set_region_temperature(void* solver,
-                               double x0, double y0,
-                               double x1, double y1,
-                               double temperature) {
+                               const double x0, const double y0,
+                               const double x1, const double y1,
+                               const double temperature) {
     if (!solver) return;
     auto* s = static_cast<AMRSolver*>(solver);
     QuadTreeNode* root = s->getRoot();
@@ -87,7 +87,7 @@ void tg_set_region_temperature(void* solver,
 // Data access
 // ============================================================================
 
-void tg_get_temperature_field(void* solver, double* buffer, int resolution) {
+void tg_get_temperature_field(void* solver, double* buffer, const int resolution) {
     if (!solver || !buffer) return;
     
     auto* s = static_cast<AMRSolver*>(solver);

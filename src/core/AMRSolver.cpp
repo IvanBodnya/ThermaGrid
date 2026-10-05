@@ -10,10 +10,10 @@
  * @param alpha Thermal diffusivity (material property)
  * @param maxLevel Maximum refinement level allowed
  */
-AMRSolver::AMRSolver(double domainSize,
-                     double initialTemp,
-                     double alpha,
-                     int maxLevel)
+AMRSolver::AMRSolver(const double domainSize,
+                     const double initialTemp,
+                     const double alpha,
+                     const int maxLevel)
     : domainSize(domainSize)
       , alpha(alpha)
       , maxLevel(maxLevel)
@@ -35,7 +35,7 @@ AMRSolver::~AMRSolver() {
  * @param dt Time step size
  * @param refineThreshold Gradient threshold for refinement
  */
-void AMRSolver::run(int numSteps, double dt, double refineThreshold) {
+void AMRSolver::run(const int numSteps, const double dt, const double refineThreshold) {
     for (int step = 0; step < numSteps; ++step) {
         // 1. Advance temperature by one time step
         stepForward(dt);
@@ -62,7 +62,7 @@ void AMRSolver::run(int numSteps, double dt, double refineThreshold) {
  * @brief Advance the simulation by one time step
  * @param dt Time step size
  */
-void AMRSolver::stepForward(double dt) {
+void AMRSolver::stepForward(const double dt) {
     std::vector<QuadTreeNode *> leaves;
     root->getAllLeaves(leaves);
 
@@ -99,7 +99,7 @@ void AMRSolver::stepForward(double dt) {
  * @brief Adapt the grid based on gradient magnitude
  * @param threshold Gradient threshold for refinement
  */
-void AMRSolver::adaptGrid(double threshold) {
+void AMRSolver::adaptGrid(const double threshold) {
     // Collect all leaf cells
     std::vector<QuadTreeNode *> leaves;
     root->getAllLeaves(leaves);
@@ -127,7 +127,7 @@ void AMRSolver::adaptGrid(double threshold) {
  * @brief Set boundary temperature (Dirichlet boundary condition)
  * @param temp Fixed temperature on all boundaries
  */
-void AMRSolver::setBoundaryTemperature(double temp) {
+void AMRSolver::setBoundaryTemperature(const double temp) {
     boundaryTemp = temp;
 }
 
@@ -136,7 +136,7 @@ void AMRSolver::setBoundaryTemperature(double temp) {
  * @param resolution Resolution of the output grid
  * @return 2D vector of temperatures
  */
-std::vector<std::vector<double> > AMRSolver::getTemperatureField(int resolution) {
+std::vector<std::vector<double> > AMRSolver::getTemperatureField(const int resolution) {
     std::vector<double> buffer(resolution * resolution, 0.0);
 
     std::vector<QuadTreeNode *> leaves;
@@ -184,9 +184,9 @@ void AMRSolver::printGrid() const {
 }
 
 void AMRSolver::setBoundaryCondition(
-    QuadTreeNode::Direction direction,
-    BoundaryType type,
-    double value) {
+    const QuadTreeNode::Direction direction,
+    const BoundaryType type,
+    const double value) {
     bc[direction] = {type, value};
 }
 
@@ -221,7 +221,7 @@ void AMRSolver::applyBoundaryConditions() {
     }
 }
 
-void AMRSolver::refineRoot(int levels) {
+void AMRSolver::refineRoot(const int levels) {
     for (int i = 0; i < levels; ++i) {
         std::vector<QuadTreeNode *> leaves;
         root->getAllLeaves(leaves);
