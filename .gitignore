@@ -105,5 +105,12 @@ out/
 # Built Visual Studio Code Extensions
 *.vsix
 
+# --- .NET / C# build artifacts ---
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
 # Custom build folder
 build
