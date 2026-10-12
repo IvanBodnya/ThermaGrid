@@ -8,7 +8,7 @@ namespace ThermaGrid.UI
     {
         private IntPtr _solver = IntPtr.Zero;
         private CancellationTokenSource? _cts;
-        private const int Resolution = 100;
+        private const int Resolution = 400;
 
         // For color mapping
         private double _minTemp = 20.0;
@@ -100,7 +100,7 @@ namespace ThermaGrid.UI
             int[] levels = new int [Resolution * Resolution];
             ThermaGridInterop.tg_get_cell_levels(_solver, levels, Resolution);
 
-            // Find min and max
+            // Find min and max temperatures
             double min = double.MaxValue, max = double.MinValue;
             for (int i = 0; i < buffer.Length; i++)
             {
@@ -188,36 +188,47 @@ namespace ThermaGrid.UI
 
         private void DrawGridOverlay(byte[] pixels, int[] levels, int width, int height)
         {
-            // Grid line color (light dashes)
-            byte gridR = 200;
-            byte gridG = 200;
-            byte gridB = 200;
-            byte gridA = 100;  // semi-transparent
+            // Grid line color (light gray, high contrast against both blue and red)
+            const byte gridR = 240;
+            const byte gridG = 240;
+            const byte gridB = 240;
 
-            for (int y = 0; y < height; y++)
+            for (var y = 0; y < height; y++)
             {
-                for (int x = 0; x < width; x++)
+                var x = 0;
+                for (; x < width; x++)
                 {
-                    int idx = y * width + x;
-                    int level = levels[idx];
+                    // we need to shift y * width since levels is a 1D array, containing 2D data
+                    var idx = y * width + x;
+                    var level = levels[idx];
 
-                    if (level < 0) continue;  // no cell here
+                    if (level < 0) continue;
 
-                    // Check if we're on a cell boundary
-                    bool isRightEdge = (x + 1 < width)
-                                       && (levels[idx + 1] != level);
-                    bool isBottomEdge = (y + 1 < height)
-                                        && (levels[idx + width] != level);
+                    var isRightEdge = (x + 1 < width)
+                                      && (levels[idx + 1] != level);
+                    var isBottomEdge = (y + 1 < height)
+                                       && (levels[idx + width] != level);
 
-                    if (isRightEdge || isBottomEdge)
+                    if (!isRightEdge && !isBottomEdge) continue;
+
+                    // Direction-aligned dash pattern
+                    var drawDash = isRightEdge switch
                     {
-                        // Blend the grid color with the existing pixel
-                        int pIdx = idx * 4;
-                        pixels[pIdx + 0] = (byte)((pixels[pIdx + 0] + gridB) / 2);
-                        pixels[pIdx + 1] = (byte)((pixels[pIdx + 1] + gridG) / 2);
-                        pixels[pIdx + 2] = (byte)((pixels[pIdx + 2] + gridR) / 2);
-                        // Keep alpha
-                    }
+                        true when isBottomEdge => true,
+                        true => (y % 3) < 2,
+                        _ => (x % 3) < 2
+                    };
+
+                    if (!drawDash) continue;
+
+                    // Blend the grid color with the existing pixel
+                    // NB: each pixel is 4 bytes, in BGRA order
+                    // so pIdx = idx * 4 is the byte offset of the pixel.
+                    var pIdx = idx * 4;
+                    pixels[pIdx + 0] = gridB;
+                    pixels[pIdx + 1] = gridG;
+                    pixels[pIdx + 2] = gridR;
+                    // Alpha stays 255 (opaque)
                 }
             }
         }
