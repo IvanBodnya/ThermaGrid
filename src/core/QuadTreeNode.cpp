@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <cmath>
+#include <iomanip>
 
 QuadTreeNode::QuadTreeNode(const double temp, const int lvl, const int x, const int y)
     : temperature(temp), level(lvl), gridX(x), gridY(y), isLeaf(true) {
@@ -152,6 +153,20 @@ void QuadTreeNode::printTree(const int indent) const {
                 children[i]->printTree(indent + 2);
             }
         }
+    }
+}
+
+void QuadTreeNode::printTemperatureField(const std::vector<std::vector<double>>& field) {
+    std::cout << "Temperature Field:" << std::endl;
+    std::cout << std::string(50, '-') << std::endl;
+
+    // Print the full field
+    for (int y = 0; y < field.size(); ++y) {
+        for (int x = 0; x < field[y].size(); ++x) {
+            std::cout << std::setw(6) << std::fixed << std::setprecision(1)
+                      << field[y][x] << " ";
+        }
+        std::cout << std::endl;
     }
 }
 
@@ -442,8 +457,10 @@ double QuadTreeNode::computeLaplacian() const {
     // For a uniform 2D grid with 4 neighbors, laplacian = sum(T_neighbor - T_center)
     // ∇²T ≈ (T_left + T_right + T_top + T_bottom - 4*T) / h²
     // With multiple neighbors, we average
-    if (count == 0) return 0.0;
-
+    if (count == 0) {
+        return 0.0;
+    }
+    
     // Normalize by count and divide by h²
     double cellSize = 1.0 / (1 << level);
     double h2 = cellSize * cellSize;

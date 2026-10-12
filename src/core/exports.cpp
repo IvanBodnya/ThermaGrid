@@ -91,6 +91,7 @@ void tg_get_temperature_field(void* solver, double* buffer, const int resolution
     if (!solver || !buffer) return;
     
     auto* s = static_cast<AMRSolver*>(solver);
+
     QuadTreeNode* root = s->getRoot();
 
     // Find max level
@@ -102,7 +103,7 @@ void tg_get_temperature_field(void* solver, double* buffer, const int resolution
     }
 
     // Create a temporary buffer
-    std::vector<double> tmp(resolution * resolution, 0.0);
+    std::vector<double> tmp(resolution * resolution, 0);
 
     // Fill using the correct maxLevel
     root->fillUniformGrid(tmp, resolution, resolution, maxLevel);
@@ -121,4 +122,41 @@ int tg_get_node_count(void* solver) {
 double tg_get_time(void* solver) {
     if (!solver) return 0.0;
     return static_cast<AMRSolver*>(solver)->getTime();
+}
+
+void tg_get_cell_levels(void* solver, int* levels, int resolution) {
+    if (!solver || !levels) return;
+
+    auto* s = static_cast<AMRSolver*>(solver);
+    QuadTreeNode* root = s->getRoot();
+
+    int maxLevel = root->getMaxLevel();
+
+    // initially we have no cell (i.e. -1)
+    for (int i =0; i< resolution * resolution; ++i) {
+        levels[i] = -1;
+    }
+
+    // fill levels in the whole tree
+    std::vector<QuadTreeNode*> leaves;
+    root->getAllLeaves(leaves);
+
+    for (auto* leaf : leaves) {
+        double cellSize = 1.0 / (1 << leaf->level);
+        double px0 = leaf->gridX * cellSize;
+        double py0 = leaf->gridY * cellSize;
+
+        int bx0 = static_cast<int>(px0 * resolution);
+        int by0 = static_cast<int>(py0 * resolution);
+        int bx1 = static_cast<int>((px0 + cellSize) * resolution);
+        int by1 = static_cast<int>((py0 + cellSize) * resolution);
+
+        for (int by = by0; by < by1; ++by) {
+            for (int bx = bx0; bx < bx1; ++bx) {
+                if (bx >=0 && bx < resolution && by >=0 && by < resolution) {
+                    levels[by * resolution + bx] = leaf->level;
+                }
+            }
+        }
+    }
 }

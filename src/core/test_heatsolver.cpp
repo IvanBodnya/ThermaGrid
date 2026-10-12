@@ -69,15 +69,16 @@ int main() {
         double cy = (leaf->gridY + 0.5) * cellSize;
 
         // Heat source in bottom-right corner (x > 0.5, y > 0.5)
-        if (cx > 0.5 && cy > 0.5) {
+        if (cx >= 0.5 && cx <= 1 && cy >= 0.5 && cy <= 1) {
             leaf->temperature = 300.0;
             hotCells++;
-        } else {
-            leaf->temperature = 20.0;
         }
     }
 
+    int resolution = 100;
+    int steps = 100;
     std::cout << "Hot cells: " << hotCells << std::endl;
+    std::cout << "Setting resolution to: " << resolution << std::endl;
 
     // Rebuild neighbors
     root->buildNeighborsUsingGrid();
@@ -87,7 +88,7 @@ int main() {
     // ========================================================================
 
     std::cout << "\n=== Initial State ===" << std::endl;
-    auto field = solver.getTemperatureField(20);
+    auto field = solver.getTemperatureField(resolution);
     printTemperatureField(field);
 
     // ========================================================================
@@ -97,14 +98,14 @@ int main() {
     std::cout << "\nStarting simulation..." << std::endl;
     std::cout << "Initial grid: " << root->countNodes() << " nodes" << std::endl;
 
-    solver.run(100, 0.001, 5.0);
+    solver.run(steps, 0.001, 5.0);
 
     // ========================================================================
     // Print final state
     // ========================================================================
 
-    std::cout << "\n=== Final State (after 100 steps) ===" << std::endl;
-    field = solver.getTemperatureField(20);
+    std::cout << "\n=== Final State (after " << steps << " steps) ===" << std::endl;
+    field = solver.getTemperatureField(resolution);
     printTemperatureField(field);
 
     std::cout << "\n=== Simulation Complete ===" << std::endl;
@@ -119,7 +120,7 @@ int main() {
     solver.run(1000, 0.001, 5.0);
 
     std::cout << "\n=== Equilibrium State ===" << std::endl;
-    field = solver.getTemperatureField(20);
+    field = solver.getTemperatureField(resolution);
     printTemperatureField(field);
 
     std::cout << "\nFinal time: " << solver.getTime() << " seconds" << std::endl;

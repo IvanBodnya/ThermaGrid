@@ -97,6 +97,9 @@ namespace ThermaGrid.UI
             double[] buffer = new double[Resolution * Resolution];
             ThermaGridInterop.tg_get_temperature_field(_solver, buffer, Resolution);
 
+            int[] levels = new int [Resolution * Resolution];
+            ThermaGridInterop.tg_get_cell_levels(_solver, levels, Resolution);
+
             // Find min and max
             double min = double.MaxValue, max = double.MinValue;
             for (int i = 0; i < buffer.Length; i++)
@@ -130,6 +133,8 @@ namespace ThermaGrid.UI
                     pixels[idx + 3] = 255; // A
                 }
             }
+
+            DrawGridOverlay(pixels, levels, w, h);
 
             bmp.WritePixels(new Int32Rect(0, 0, w, h), pixels, w * 4, 0);
             HeatmapImage.Source = bmp;
@@ -179,6 +184,42 @@ namespace ThermaGrid.UI
             }
 
             return (r, g, b);
+        }
+
+        private void DrawGridOverlay(byte[] pixels, int[] levels, int width, int height)
+        {
+            // Grid line color (light dashes)
+            byte gridR = 200;
+            byte gridG = 200;
+            byte gridB = 200;
+            byte gridA = 100;  // semi-transparent
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int idx = y * width + x;
+                    int level = levels[idx];
+
+                    if (level < 0) continue;  // no cell here
+
+                    // Check if we're on a cell boundary
+                    bool isRightEdge = (x + 1 < width)
+                                       && (levels[idx + 1] != level);
+                    bool isBottomEdge = (y + 1 < height)
+                                        && (levels[idx + width] != level);
+
+                    if (isRightEdge || isBottomEdge)
+                    {
+                        // Blend the grid color with the existing pixel
+                        int pIdx = idx * 4;
+                        pixels[pIdx + 0] = (byte)((pixels[pIdx + 0] + gridB) / 2);
+                        pixels[pIdx + 1] = (byte)((pixels[pIdx + 1] + gridG) / 2);
+                        pixels[pIdx + 2] = (byte)((pixels[pIdx + 2] + gridR) / 2);
+                        // Keep alpha
+                    }
+                }
+            }
         }
 
         protected override void OnClosed(EventArgs e)

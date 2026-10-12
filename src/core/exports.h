@@ -129,6 +129,15 @@ TG_API int tg_get_node_count(void* solver);
  */
 TG_API double tg_get_time(void* solver);
 
+/**
+ * Fill a caller-provided buffer with the grid structure.
+ * Each element is the refinement level of the cell at that position.
+ **/
+TG_API void tg_get_cell_levels(
+    void *solver,
+    int *levels,
+    int resolution);
+
 #ifdef __cplusplus
 }
 #endif

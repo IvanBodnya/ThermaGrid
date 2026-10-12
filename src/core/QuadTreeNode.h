@@ -49,6 +49,7 @@ public:
     // ========================================================================
 
     void printTree(int indent = 0) const;
+    void printTemperatureField(const std::vector<std::vector<double>>& field);
     void printNeighbors(int indent = 0) const;
     void fillUniformGrid(
         std::vector<double>& buffer,

@@ -11,8 +11,14 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Copy the native DLL to output -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <None Include="..\..\cmake-build-debug\bin\ThermaGrid_Core.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>ThermaGrid_Core.dll</Link>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <None Include="..\..\cmake-build-release\bin\ThermaGrid_Core.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>ThermaGrid_Core.dll</Link>

@@ -69,18 +69,23 @@ void AMRSolver::stepForward(const double dt) {
     std::vector<double> newTemps(leaves.size());
 
     for (size_t i = 0; i < leaves.size(); ++i) {
-        QuadTreeNode *cell = leaves[i];
+        const QuadTreeNode *cell = leaves[i];
 
         // Compute the Laplacian
-        double laplacian = cell->computeLaplacian();
+        const double laplacian = cell->computeLaplacian();
 
         // Apply the heat equation
         double newTemp = cell->temperature + alpha * laplacian * dt;
 
         // Clamp temperatures to a reasonable range
         // This prevents 0°C artifacts from propagating
-        if (newTemp < 0.0) newTemp = 0.0;
-        if (newTemp > 500.0) newTemp = 500.0;
+        if (newTemp < 0.0) {
+            newTemp = 0.0;
+        }
+
+        if (newTemp > 500.0) {
+            newTemp = 500.0;
+        }
 
         newTemps[i] = newTemp;
     }
@@ -120,6 +125,9 @@ void AMRSolver::adaptGrid(const double threshold) {
     if (refined) {
         root->buildNeighborsUsingGrid();
         std::cout << "  Refined grid. New cells: " << root->countNodes() << std::endl;
+
+        auto field = getTemperatureField(100);
+        root->printTemperatureField(field);
     }
 }
 
@@ -149,10 +157,12 @@ std::vector<std::vector<double> > AMRSolver::getTemperatureField(const int resol
 
     root->fillUniformGrid(buffer, resolution, resolution, root->getMaxLevel());
 
-    std::vector<std::vector<double> > field(resolution, std::vector<double>(resolution, 0.0));
+    std::vector<std::vector<double>> field(resolution, std::vector<double>(resolution, 0.0));
     for (int y = 0; y < resolution; ++y)
         for (int x = 0; x < resolution; ++x)
             field[y][x] = buffer[y * resolution + x];
+
+    root->printTemperatureField(field);
 
     return field;
 }
@@ -207,9 +217,7 @@ void AMRSolver::applyBoundaryConditions() {
                         break;
 
                     case NEUMANN:
-                        // Neumann: fixed flux — don't modify temperature here.
-                        // The flux is enforced via the gradient computation
-                        // (which we'll fix separately).
+                        // Neumann: fixed flux. Skip for now, or implement later.
                         break;
 
                     case ROBIN:
@@ -232,4 +240,7 @@ void AMRSolver::refineRoot(const int levels) {
         }
     }
     root->buildNeighborsUsingGrid();
+
+    auto field = getTemperatureField(100);
+    root->printTemperatureField(field);
 }

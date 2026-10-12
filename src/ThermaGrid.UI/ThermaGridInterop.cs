@@ -36,5 +36,9 @@ namespace ThermaGrid.UI
 
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern double tg_get_time(IntPtr solver);
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void tg_get_cell_levels(
+            IntPtr solver, int[] levels, int resolution);
     }
 }
