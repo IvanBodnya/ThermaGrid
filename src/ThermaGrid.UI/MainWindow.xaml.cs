@@ -1,4 +1,8 @@
-﻿using System.Windows;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -97,7 +101,7 @@ namespace ThermaGrid.UI
             double[] buffer = new double[Resolution * Resolution];
             ThermaGridInterop.tg_get_temperature_field(_solver, buffer, Resolution);
 
-            int[] levels = new int [Resolution * Resolution];
+            int[] levels = new int[Resolution * Resolution];
             ThermaGridInterop.tg_get_cell_levels(_solver, levels, Resolution);
 
             // Find min and max temperatures
@@ -138,6 +142,65 @@ namespace ThermaGrid.UI
 
             bmp.WritePixels(new Int32Rect(0, 0, w, h), pixels, w * 4, 0);
             HeatmapImage.Source = bmp;
+
+            // Update color bar with the new temperature range
+            RenderColorBar();
+        }
+
+        private void RenderColorBar()
+        {
+            const int stripWidth = 20;
+            const int stripHeight = 400;
+
+            // --- Render the gradient strip ---
+            var bmp = new WriteableBitmap(stripWidth, stripHeight, 96, 96, PixelFormats.Bgra32, null);
+            byte[] pixels = new byte[stripWidth * stripHeight * 4];
+
+            for (int y = 0; y < stripHeight; y++)
+            {
+                // t goes from 1 (top = hot) to 0 (bottom = cold)
+                double t = 1.0 - (double)y / (stripHeight - 1);
+                double tempValue = _minTemp + t * (_maxTemp - _minTemp);
+                var (r, g, b) = TemperatureToColor(tempValue, _minTemp, _maxTemp);
+
+                for (int x = 0; x < stripWidth; x++)
+                {
+                    int idx = (y * stripWidth + x) * 4;
+                    pixels[idx + 0] = b;
+                    pixels[idx + 1] = g;
+                    pixels[idx + 2] = r;
+                    pixels[idx + 3] = 255;
+                }
+            }
+
+            bmp.WritePixels(new Int32Rect(0, 0, stripWidth, stripHeight), pixels, stripWidth * 4, 0);
+            ColorbarImage.Source = bmp;
+
+            // --- Render the labels ---
+            ColorbarLabels.Children.Clear();
+            ColorbarLabels.Height = stripHeight;
+
+            const int numLabels = 6;
+            for (int i = 0; i <= numLabels; i++)
+            {
+                double t = (double)i / numLabels;
+                double tempValue = _minTemp + t * (_maxTemp - _minTemp);
+
+                // t=0 should be at the bottom, t=1 at the top
+                double y = (1.0 - t) * (stripHeight - 20);
+
+                var label = new TextBlock
+                {
+                    Text = $"{tempValue:F0} °C",
+                    Foreground = Brushes.White,
+                    FontSize = 11,
+                    FontFamily = new FontFamily("Consolas")
+                };
+
+                Canvas.SetLeft(label, 5);
+                Canvas.SetTop(label, y);
+                ColorbarLabels.Children.Add(label);
+            }
         }
 
         private static (byte R, byte G, byte B) TemperatureToColor(double t, double min, double max)
