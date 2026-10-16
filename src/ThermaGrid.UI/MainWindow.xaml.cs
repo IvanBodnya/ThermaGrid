@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -111,6 +108,7 @@ namespace ThermaGrid.UI
                 if (buffer[i] < min) min = buffer[i];
                 if (buffer[i] > max) max = buffer[i];
             }
+
             _minTemp = min;
             _maxTemp = max;
 
@@ -131,9 +129,9 @@ namespace ThermaGrid.UI
                     var (r, g, b) = TemperatureToColor(t, _minTemp, _maxTemp);
 
                     int idx = (y * w + x) * 4;
-                    pixels[idx + 0] = b;  // B
-                    pixels[idx + 1] = g;  // G
-                    pixels[idx + 2] = r;  // R
+                    pixels[idx + 0] = b; // B
+                    pixels[idx + 1] = g; // G
+                    pixels[idx + 2] = r; // R
                     pixels[idx + 3] = 255; // A
                 }
             }
@@ -149,16 +147,15 @@ namespace ThermaGrid.UI
 
         private void RenderColorBar()
         {
+            // --- Render the gradient strip (only needs to be done when temperature range changes) ---
             const int stripWidth = 20;
             const int stripHeight = 400;
 
-            // --- Render the gradient strip ---
             var bmp = new WriteableBitmap(stripWidth, stripHeight, 96, 96, PixelFormats.Bgra32, null);
             byte[] pixels = new byte[stripWidth * stripHeight * 4];
 
             for (int y = 0; y < stripHeight; y++)
             {
-                // t goes from 1 (top = hot) to 0 (bottom = cold)
                 double t = 1.0 - (double)y / (stripHeight - 1);
                 double tempValue = _minTemp + t * (_maxTemp - _minTemp);
                 var (r, g, b) = TemperatureToColor(tempValue, _minTemp, _maxTemp);
@@ -176,18 +173,31 @@ namespace ThermaGrid.UI
             bmp.WritePixels(new Int32Rect(0, 0, stripWidth, stripHeight), pixels, stripWidth * 4, 0);
             ColorbarImage.Source = bmp;
 
-            // --- Render the labels ---
+            // Now render the labels to fit the current height
+            RenderColorBarLabels();
+        }
+
+        private void RenderColorBarLabels()
+        {
+            // Clear existing labels
             ColorbarLabels.Children.Clear();
-            ColorbarLabels.Height = stripHeight;
+
+            // Use the actual rendered height of the Canvas
+            double canvasHeight = ColorbarLabels.ActualHeight;
+
+            // If the canvas hasn't been measured yet, skip
+            if (canvasHeight <= 0) return;
 
             const int numLabels = 6;
+            const double labelHeight = 20; // approximate height of a TextBlock
+
             for (int i = 0; i <= numLabels; i++)
             {
                 double t = (double)i / numLabels;
                 double tempValue = _minTemp + t * (_maxTemp - _minTemp);
 
-                // t=0 should be at the bottom, t=1 at the top
-                double y = (1.0 - t) * (stripHeight - 20);
+                // Position from top: t=1 (hot) → top, t=0 (cold) → bottom
+                double y = (1.0 - t) * (canvasHeight - labelHeight);
 
                 var label = new TextBlock
                 {
@@ -294,6 +304,17 @@ namespace ThermaGrid.UI
                     // Alpha stays 255 (opaque)
                 }
             }
+        }
+
+        private void OnColorBarSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // Re-render the labels to fit the new height
+            RenderColorBarLabels();
+        }
+
+        private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            RenderColorBarLabels();
         }
 
         protected override void OnClosed(EventArgs e)
