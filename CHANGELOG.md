@@ -1,18 +1,24 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - 2026-10-19
 
 ### Added
-- AMR grid overlay visualization (planned)
-- Parameter sliders for dt, refinement threshold, and alpha (planned)
-- Colorbar legend with absolute temperature scale (planned)
-- Export of temperature field to PNG and CSV (planned)
-- Documentation site (planned)
+- Dynamic colorbar with temperature labels, scaled to window height
+- Dashed grid overlay for AMR cell boundaries
+
+### Changed
+- Split `AMRSolver.h` into `AMRSolver.h` and `AMRSolver.cpp`
+- Reorganized build system: separate static and shared libraries
 
 ### Fixed
-- `fillUniformGrid` renders only the top-left quadrant after grid refinement
-- `Cells` counter shows 0 on startup instead of the actual node count
-- Boundary cells retain 0°C values after refinement (flat grid fill bug)
+- `Cells: 0` display on startup
+- Colorbar label positioning when window is resized
+
+### Known Issues
+- `fillUniformGrid` coordinate mismatch (top-left quadrant fills)
+- Boundary conditions inconsistent with gradient computation
+- Missing `/h²` in `computeLaplacian`
+- `dx = 2.0` approximation in gradient computation
 
 ## [0.1.0] - 2026-09-15
 
