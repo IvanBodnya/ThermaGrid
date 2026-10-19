@@ -11,7 +11,7 @@
 
 ThermaGrid is a high-performance C++/C# simulation platform that solves the 2D transient heat equation using adaptive mesh refinement (AMR). It dynamically refines the computational grid only where temperature gradients are steep, achieving 3-5x speedup compared to uniform grids.
 
-![Screenshot_2026-10-05](docs/icon/2026-10-05_10-20.png)
+![Screenshot_2026-10-05](docs/screenshot/2026-10-19_10-07.png)
 
 ## 🚀 Key Features
 
