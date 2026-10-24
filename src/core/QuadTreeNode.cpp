@@ -87,7 +87,6 @@ double QuadTreeNode::coarsen() {
 
     for (int i = 0; i < NUM_CHILDREN; ++i) {
         // delete children recursively
-        children[i]->coarsen();
         children[i].reset();
     }
     isLeaf = true;
