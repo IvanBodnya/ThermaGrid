@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <memory>
 #include <vector>
 
 class QuadTreeNode {
@@ -16,12 +18,12 @@ public:
     int gridY;
     bool isLeaf;
 
-    QuadTreeNode* children[NUM_CHILDREN]{};
+    std::array<std::unique_ptr<QuadTreeNode>, NUM_CHILDREN> children;
     std::vector<QuadTreeNode*> neighbors[NUM_NEIGHBORS];
 
     explicit QuadTreeNode(double temp = 20.0, int lvl = 0, int x = 0, int y = 0);
 
-    ~QuadTreeNode();
+    ~QuadTreeNode() = default;
 
     QuadTreeNode(const QuadTreeNode&) = delete;
     QuadTreeNode& operator=(const QuadTreeNode&) = delete;

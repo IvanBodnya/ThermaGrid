@@ -12,23 +12,13 @@ QuadTreeNode::QuadTreeNode(const double temp, const int lvl, const int x, const 
     }
 }
 
-QuadTreeNode::~QuadTreeNode() {
-    for (int i = 0; i < NUM_CHILDREN; ++i) {
-        delete children[i];
-        children[i] = nullptr;
-    }
-}
-
 QuadTreeNode::QuadTreeNode(QuadTreeNode &&other) noexcept
     : temperature(other.temperature)
       , level(other.level)
       , gridX(other.gridX)
       , gridY(other.gridY)
       , isLeaf(other.isLeaf) {
-    for (int i = 0; i < NUM_CHILDREN; ++i) {
-        children[i] = other.children[i];
-        other.children[i] = nullptr;
-    }
+    children = std::move(other.children);
 
     for (int i = 0; i < NUM_NEIGHBORS; ++i) {
         neighbors[i] = std::move(other.neighbors[i]);
@@ -38,8 +28,7 @@ QuadTreeNode::QuadTreeNode(QuadTreeNode &&other) noexcept
 QuadTreeNode &QuadTreeNode::operator=(QuadTreeNode &&other) noexcept {
     if (this != &other) {
         for (int i = 0; i < NUM_CHILDREN; ++i) {
-            delete children[i];
-            children[i] = nullptr;
+            children[i].reset();
         }
 
         temperature = other.temperature;
@@ -48,10 +37,7 @@ QuadTreeNode &QuadTreeNode::operator=(QuadTreeNode &&other) noexcept {
         gridX = other.gridX;
         gridY = other.gridY;
 
-        for (int i = 0; i < NUM_CHILDREN; ++i) {
-            children[i] = other.children[i];
-            other.children[i] = nullptr;
-        }
+        children = std::move(other.children);
 
         for (int i = 0; i < NUM_NEIGHBORS; ++i) {
             neighbors[i] = std::move(other.neighbors[i]);
@@ -79,10 +65,10 @@ void QuadTreeNode::refine() {
     // Child 1 (NE)
     // Child 2 (SE)
     // Child 3 (SW)
-    children[0] = new QuadTreeNode(temperature, level + 1, gridX * 2, gridY * 2);
-    children[1] = new QuadTreeNode(temperature, level + 1, gridX * 2 + 1, gridY * 2);
-    children[2] = new QuadTreeNode(temperature, level + 1, gridX * 2 + 1, gridY * 2 + 1);
-    children[3] = new QuadTreeNode(temperature, level + 1, gridX * 2, gridY * 2 + 1);
+    children[0] = std::make_unique<QuadTreeNode>(temperature, level + 1, gridX * 2, gridY * 2);
+    children[1] = std::make_unique<QuadTreeNode>(temperature, level + 1, gridX * 2 + 1, gridY * 2);
+    children[2] = std::make_unique<QuadTreeNode>(temperature, level + 1, gridX * 2 + 1, gridY * 2 + 1);
+    children[3] = std::make_unique<QuadTreeNode>(temperature, level + 1, gridX * 2, gridY * 2 + 1);
 
     isLeaf = false;
 }
@@ -102,9 +88,7 @@ double QuadTreeNode::coarsen() {
     for (int i = 0; i < NUM_CHILDREN; ++i) {
         // delete children recursively
         children[i]->coarsen();
-
-        delete children[i];
-        children[i] = nullptr;
+        children[i].reset();
     }
     isLeaf = true;
     return temperature;

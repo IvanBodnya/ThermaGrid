@@ -45,13 +45,13 @@ int main() {
     // ========================================================================
 
     // Root at Level 0
-    QuadTreeNode* root = new QuadTreeNode(20.0, 0, 0, 0);
+    std::unique_ptr<QuadTreeNode> root = std::make_unique<QuadTreeNode>(20.0, 0, 0, 0);
 
     // Refine to Level 1
     root->refine();
     root->buildNeighborsUsingGrid();
     std::cout << "\n=== Level 1 Grid (4 cells) ===" << std::endl;
-    printAllLeaves(root);
+    printAllLeaves(root.get());
 
     // ========================================================================
     // Case 1: Refine NW child only
@@ -62,10 +62,10 @@ int main() {
     std::cout << "========================================" << std::endl;
 
     // Find NW child (index 0)
-    QuadTreeNode* nw = root->children[0];
+    QuadTreeNode* nw = root->children[0].get();
     nw->refine();
     root->buildNeighborsUsingGrid();
-    printAllLeaves(root);
+    printAllLeaves(root.get());
 
     // ========================================================================
     // Case 2: Refine SE child as well
@@ -75,16 +75,16 @@ int main() {
     std::cout << "  Case 2: Refine SE (Level 1 → Level 2)" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    QuadTreeNode* se = root->children[3];
+    QuadTreeNode* se = root->children[3].get();
     se->refine();
     root->buildNeighborsUsingGrid();
-    printAllLeaves(root);
+    printAllLeaves(root.get());
 
     // ========================================================================
     // Clean up
     // ========================================================================
 
-    delete root;
+    root.reset();
 
     std::cout << "\n✅ All tests passed!" << std::endl;
     return 0;
